@@ -20,23 +20,28 @@ class Bird:
     def flap(self):
         self.velocity = -8
     
-    def update(self):
-        self.velocity += 0.5
+    def update(self, score=0):
+        # Gravity increases with score
+        gravity = 0.5 + score * 0.02
+        self.velocity += gravity
         self.y += self.velocity
     
     def draw(self, screen):
         pygame.draw.circle(screen, BLUE, (int(self.x), int(self.y)), self.size)
 
 class Pipe:
-    def __init__(self, x):
+    def __init__(self, x, score=0):
         self.x = x
-        self.gap = 250
+        # Gap gets smaller as score increases (minimum 180)
+        self.gap = max(180, 250 - score * 5)
         self.top = random.randint(50, HEIGHT - self.gap - 100)
         self.bottom = self.top + self.gap
         self.width = 50
+        # Speed increases with score
+        self.speed = 2 + score * 0.1
     
     def update(self):
-        self.x -= 2
+        self.x -= self.speed
     
     def draw(self, screen):
         pygame.draw.rect(screen, GREEN, (self.x, 0, self.width, self.top))
@@ -54,7 +59,7 @@ def main():
     clock = pygame.time.Clock()
     
     bird = Bird()
-    pipes = [Pipe(WIDTH + i * 200) for i in range(3)]
+    pipes = [Pipe(WIDTH + i * 200, 0) for i in range(3)]
     score = 0
     font = pygame.font.Font(None, 36)
     game_over = False
@@ -70,12 +75,12 @@ def main():
                 elif event.key == pygame.K_r and game_over:
                     # Restart game
                     bird = Bird()
-                    pipes = [Pipe(WIDTH + i * 200) for i in range(3)]
+                    pipes = [Pipe(WIDTH + i * 200, 0) for i in range(3)]
                     score = 0
                     game_over = False
         
         if not game_over:
-            bird.update()
+            bird.update(score)
             
             # Check boundaries
             if bird.y < 0 or bird.y > HEIGHT:
@@ -89,7 +94,9 @@ def main():
                 if pipe.x + pipe.width < 0:
                     pipes.remove(pipe)
                     rightmost_x = max(p.x for p in pipes) if pipes else WIDTH
-                    pipes.append(Pipe(rightmost_x + 200))
+                    # Pipes get closer together as score increases (minimum 150)
+                    pipe_spacing = max(150, 200 - score * 2)
+                    pipes.append(Pipe(rightmost_x + pipe_spacing, score))
                     score += 1
         
         # Draw everything
